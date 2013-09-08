@@ -9,7 +9,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the {organization} nor the
+ *     * Neither the name of the FunwariTools nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
@@ -25,171 +25,264 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// URL‚ðŠÇ—
+// URLã‚’ç®¡ç†
 
 class Funwari_URL {
 
 	private $protocol = '';
 	private $domain = '';
+	// ãƒ‘ã‚¹ ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯, ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°å«ã¾ãš
 	private $path = '';
-	private $org_path = '';
 
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+	// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚° ?ã¯å«ã¾ãš
+	private $query_string;
+
+	// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯ #ã¯å«ã¾ãš
+	private $internal_link;
+
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
 	function __construct($url_path='') {
 		$this->Set($url_path);
 	}
 
 
-	// ƒŠƒZƒbƒg
+	// ãƒªã‚»ãƒƒãƒˆ
 	function Reset() {
 		$this->protocol = '';
 		$this->domain = '';
 		$this->path = '';
-		$this->org_path = '';
+		$this->query_string = '';
+		$this->internal_link = '';
 	}
 
 
-	// Ý’è
+	// è¨­å®š
 	function Set($url_path) {
 		$this->Reset();
-		$this->org_path = $url_path;
+		$this->Move($url_path);
+	}
 
-		// URL‚È‚çƒvƒƒgƒRƒ‹‚ðŽæ“¾
-		if( $this->IsURL($url_path) ) {
 
-			// ƒvƒƒgƒRƒ‹Žæ“¾
-			$this->protocol = $this->GetProtocolFromURL($url_path);
+	// å®Œå…¨ãªURLã‚’è¨­å®š
+	function SetURL($url_path) {
 
-			// ƒvƒƒgƒRƒ‹•”•ª‚ðíœ
-			//$url_path = $this->ChopProtocol($url_path, $this->protocol);
+		// ãƒ—ãƒ­ãƒˆã‚³ãƒ«å–å¾—
+		$this->protocol = Funwari_URL::GetProtocolFromURL($url_path);
 
-			// ƒhƒƒCƒ“Žæ“¾
-			// “ï‚µ‚¢B‚±‚±‚Í‚Æ‚Ä‚à’†“r”¼’[
-			$this->domain = $this->GetDomainFromURL($url_path);
+		// ãƒ—ãƒ­ãƒˆã‚³ãƒ«éƒ¨åˆ†ã‚’å‰Šé™¤
+		$url_path = Funwari_URL::ChopProtocol($url_path);
 
-			// ƒhƒƒCƒ“‚Ü‚Åíœ
-			$url_path = $this->ChopDomain($url_path);
-		}
+		$this->SetProtocolRelativeURL($url_path);
+	}
 
-		// ‚ ‚Æ‚Í‘Š‘ÎƒpƒX‚Å‚ ‚ë‚¤‚Æ, â‘ÎƒpƒX‚Å‚ ‚ë‚¤‚Æ
-		// path‚ÉÝ’è‚·‚é‚Ì‚Ý
+
+	// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ç›¸å¯¾URL
+	function SetProtocolRelativeURL($url_path) {
+
+		// ãƒ‰ãƒ¡ã‚¤ãƒ³å–å¾—
+		$this->domain = Funwari_URL::GetDomainFromURL($url_path);
+
+		// ãƒ‰ãƒ¡ã‚¤ãƒ³ã¾ã§å‰Šé™¤
+		$url_path = Funwari_URL::ChopDomain($url_path);
+
+		$this->Setpath($url_path);
+	}
+
+
+	// ãƒ‘ã‚¹ã‚’è¨­å®š
+	function SetPath($url_path) {
+		// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°
+		$this->SetQueryString(Funwari_URL::GetQueryStringFromURL($url_path));
+
+		// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯
+		$this->SetInternalLink(Funwari_URL::GetInternalLinkFromURL($url_path));
+
+		// ã‚ã¨ã¯ç›¸å¯¾ãƒ‘ã‚¹ã§ã‚ã‚ã†ã¨, çµ¶å¯¾ãƒ‘ã‚¹ã§ã‚ã‚ã†ã¨
+		// pathã«è¨­å®šã™ã‚‹ã®ã¿
+		$url_path = Funwari_URL::ChopInternalLink($url_path);
+		$url_path = Funwari_URL::ChopQueryString($url_path);
 		$this->path = $url_path;
-
-		return true;
 	}
 
 
-	// ˆÚ“®
+	// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‚’ã‚»ãƒƒãƒˆ
+	function SetQueryString($query_string) {
+		$query_string = str_replace('?', '', $query_string);
+		$this->query_string = $query_string;
+	}
+
+
+	// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯ã‚’ã‚»ãƒƒãƒˆ
+	function SetInternalLink($internal_link) {
+		$internal_link = str_replace('#', '', $internal_link);
+		$this->internal_link = $internal_link;
+	}
+
+
+	// ç§»å‹•
+	// @return ç§»å‹•å¾Œã®ãƒ‘ã‚¹
 	function Move($url_path) {
-		// ƒvƒƒgƒRƒ‹‚©‚ç‘¶Ý‚·‚é‚æ‚¤‚ÈƒpƒX‚È‚çÝ’è‚µ‚È‚¨‚·‚¾‚¯
+
+		// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ã‹ã‚‰å­˜åœ¨ã™ã‚‹ã‚ˆã†ãªãƒ‘ã‚¹ãªã‚‰è¨­å®šã—ãªãŠã™ã ã‘
 		if( $this->IsURL($url_path) ) {
-			return $this->Set($url_path);
+			$this->SetURL($url_path);
+			return $this->GetFullPath();
 		}
 
-		// â‘ÎƒpƒX‚È‚ç, ƒvƒƒgƒRƒ‹, ƒhƒƒCƒ“‚Í‚»‚Ì‚Ü‚Ü‚ÉƒpƒX‚Ì‚Ý‚ð
-		// Ý’è‚·‚é
-		if( $this->IsAbsolute($url_path) ) {
-			$this->path = $url_path;
-			return true;
+		// ãƒ—ãƒ­ãƒˆã‚³ãƒ«æŠœããƒ‰ãƒ¡ã‚¤ãƒ³ãªã‚‰
+		if( $this->IsProtocolRelativeURL($url_path) ) {
+			$this->SetProtocolRelativeURL($url_path);
+			return $this->GetFullPath();
 		}
 
-		// Žc‚é‚Í‘Š‘ÎƒpƒX‚¾‚ª, ‚±‚ê‚ª–Ê“|‚­‚³‚¢B
+		// çµ¶å¯¾ãƒ‘ã‚¹ãªã‚‰, ãƒ—ãƒ­ãƒˆã‚³ãƒ«, ãƒ‰ãƒ¡ã‚¤ãƒ³ã¯ãã®ã¾ã¾ã«ãƒ‘ã‚¹ã®ã¿ã‚’
+		// è¨­å®šã™ã‚‹
+		if( $this->IsAbsolutePath($url_path) ) {
+			$this->SetPath($url_path);
+			return $this->GetFullPath();
+		}
+
+		// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‚‚ã—ãã¯ãƒšãƒ¼ã‚¸å†…ãƒªãƒ³ã‚¯
+		if( $this->IsQueryString($url_path)
+			|| $this->IsInternalLink($url_path) ) {
+			$query_string = Funwari_URL::ChopInternalLink($url_path);
+			$internal_link = Funwari_URL::ChopQueryString($url_path);
+			if( $query_string != '' ) {
+				$this->SetQueryString($query_string);
+			}
+			if( $internal_link != '' ) {
+				$this->SetInternalLink($internal_link);
+			}
+			return $this->GetFullPath();
+		}
+
+		// æ®‹ã‚‹ã¯ç›¸å¯¾ãƒ‘ã‚¹ã ãŒ, ã“ã‚ŒãŒé¢å€’ãã•ã„ã€‚
 		$this->MoveRelative($url_path);
-		return true;
+		return $this->GetFullPath();
 	}
 
 
-	// ‘Š‘ÎƒpƒXˆÚ“®
-	// ‚±‚ÌƒNƒ‰ƒX, ‚µ‚©‚àMove, MoveRelativeˆÈŠO‚©‚çŒÄ‚Î‚ê‚é‚±‚Æ‚Í‚È‚¢B
+	// ç›¸å¯¾ãƒ‘ã‚¹ç§»å‹•
+	// ã“ã®ã‚¯ãƒ©ã‚¹, ã—ã‹ã‚‚Move, MoveRelativeä»¥å¤–ã‹ã‚‰å‘¼ã°ã‚Œã‚‹ã“ã¨ã¯ãªã„ã€‚
 	private function MoveRelative($path) {
-		// ƒpƒX‹æØ‚è‚ðŽ‚Á‚Ä‚¢‚é‚È‚ç, •ª‰ð‚µ‚ÄÄ‹A
-		if( preg_match('/[\/\\\\]/', $path) ) {
-			$dir_list = preg_split('/[\/\\\\]/', $path);
-			foreach($dir_list as $i_dir) {
-				$this->MoveRelative($i_dir);
-			}
+		$this->query_string = '';
+		$this->internal_link = '';
+
+		// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°
+		$query_string = Funwari_URL::GetQueryStringFromURL($path);
+
+		// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯
+		$internal_link = Funwari_URL::GetInternalLinkFromURL($path);
+
+		$path = Funwari_URL::ChopInternalLink($path);
+		$path = Funwari_URL::ChopQueryString($path);
+
+		// ãƒ‘ã‚¹åŒºåˆ‡ã‚Šã§åˆ†è§£ã—ã¦é€æ¬¡é©ç”¨
+		$dir_list = preg_split('/[\/\\\\]/', $path);
+		foreach($dir_list as $i_dir) {
+			$this->MoveRelativeSimple($i_dir);
+		}
+
+		// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°
+		if( $query_string != '' ) {
+			$this->SetQueryString($query_string);
+		}
+
+		// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯
+		if( $internal_link != '' ) {
+			$this->SetInternalLink($internal_link);
+		}
+
+		return true;
+	}
+
+	// ç›¸å¯¾ãƒ‘ã‚¹ç§»å‹•
+	// ãŸã ã—, ã“ã¡ã‚‰ã¯, $pathã«åŒºåˆ‡ã‚Šã‚„ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ãŒ
+	// å«ã¾ã‚Œã¦ã„ãªã„ã“ã¨ãŒä¿è¨¼ã•ã‚Œã¦ã„ã‚‹ã€‚
+	private function MoveRelativeSimple($path) {
+
+		// ç§»å‹•ã—ãªã„
+		if( $path == '' ) {
 			return true;
 		}
 
-		// ‹æØ‚è•¶Žš‚ª‚È‚¢
-
-		// ˆÚ“®‚µ‚È‚¢
-		if( $path == '.' || $path == '' ) {
+		// ãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤
+		if( $path == '.' ) {
+			$this->path = Funwari_URL::ChopFileName($this->path);
 			return true;
 		}
 
-		// ˆê‚Âã‚ÉˆÚ“®
+		// ä¸€ã¤ä¸Šã«ç§»å‹•
 		if( $path == '..' ) {
-			$new_path = $this->path;
+			// ãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤
+			$new_path = Funwari_URL::ChopFileName($this->path);
 
-			// ÅŒã‚ÉƒfƒBƒŒƒNƒgƒŠ‹æØ‚è•¶Žš‚ª‚ ‚Á‚½‚çœ‚¢‚Ä‚¨‚­
-			$new_path = preg_replace('/[\/\\\\]$/', '', $new_path);
-
-			// Œ»Ý‚ÌƒfƒBƒŒƒNƒgƒŠ‚ðíœ
+			// ç¾åœ¨ã®ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã‚’å‰Šé™¤
 			$new_path = dirname($new_path);
 
 			$this->path = $new_path;
 			return true;
 		}
 
-		// ’ˆÓB‚±‚±‚Å‚Í. “ñ‚Âã‚ÉˆÚ“®‚ÍŽÀ‘•‚µ‚È‚¢
+		// æ³¨æ„ã€‚ã“ã“ã§ã¯. äºŒã¤ä¸Šã«ç§»å‹•ã¯å®Ÿè£…ã—ãªã„
 
-		// . ‚à‚µ‚­‚Í .. ˆÈŠO‚ÌƒsƒŠƒIƒh‚©‚ç‚Ì‚Ý‚È‚éƒfƒBƒŒƒNƒgƒŠ‚Ìê‡
-		// ‚±‚±‚Å‚Í‰½‚à‚µ‚È‚¢‚É‚·‚éB
+		// . ã‚‚ã—ãã¯ .. ä»¥å¤–ã®ãƒ”ãƒªã‚ªãƒ‰ã‹ã‚‰ã®ã¿ãªã‚‹ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªã®å ´åˆ
+		// ã“ã“ã§ã¯ä½•ã‚‚ã—ãªã„ã«ã™ã‚‹ã€‚
 		if( preg_match('/^\.*$/', $path) ) {
 			return true;
 		}
 
-		// ‚»‚Ì‘¼ = ƒTƒuƒfƒBƒŒƒNƒgƒŠ–¼Žw’è
-		$new_path = $this->path;
+		// ãã®ä»– = ã‚µãƒ–ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªåæŒ‡å®šã‚„ãƒ•ã‚¡ã‚¤ãƒ«åæŒ‡å®š
 
-		// ÅŒã‚ÉƒfƒBƒŒƒNƒgƒŠ‹æØ‚è•¶Žš‚ª‚ ‚Á‚½‚çœ‚¢‚Ä‚¨‚­
-		$new_path = preg_replace('/[\/\\\\]$/', '', $new_path);
+		// ãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤
+		$new_path = Funwari_URL::ChopFileName($this->path);
 
-		$new_path .= '/' . $path;
+		// æœ€å¾Œã«ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒªåŒºåˆ‡ã‚Šæ–‡å­—ãŒã§ãªã‘ã‚Œã°åŒºåˆ‡ã‚Šæ–‡å­—è¿½åŠ 
+		if( !preg_match('/[\/\\\\]$/', $new_path) ) {
+			$new_path .= '/';
+		}
+
+		$new_path .= $path;
 
 		$this->path = $new_path;
 		return true;
 	}
 
 
-	// ƒvƒƒgƒRƒ‹‚ðŽæ“¾
-	function GetProtocolFromURL($url_path) {
-		if( !preg_match('/:\/\//', $url_path) ) {
+	// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ã‚’å–å¾—
+	static function GetProtocolFromURL($url_path) {
+		if( !preg_match('/^[a-zA-Z]*:/', $url_path) ) {
 			return '';
 		}
 
-		$protocol = preg_replace('/:\/\/.*$/', '', $url_path);
-
-		return $protocol;
+		return preg_replace('/^([a-zA-Z]*):.*$/', '$1', $url_path);
 	}
 
 
-	// ƒvƒƒgƒRƒ‹‚ðØ‚è—Ž‚Æ‚µ
-	function ChopProtocol($url_path, $protocol) {
-		return substr($url_path, strlen($protocol)+3);		// strlen(://) = 3
+	// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ã‚’åˆ‡ã‚Šè½ã¨ã—
+	// :ã¾ã§ã‚’åˆ‡ã‚Šè½ã¨ã™ã€‚
+	// å®Œå…¨ãªURLã‚’ä¸ŽãˆãŸå ´åˆ, è¿”ã‚Šå€¤ã¯ãƒ—ãƒ­ãƒˆã‚³ãƒ«ç›¸å¯¾URLã®å½¢å¼ã«ãªã‚‹ã€‚
+	static function ChopProtocol($url_path) {
+		return preg_replace('/^[a-zA-Z]*:/', '', $url_path);
 	}
 
 
-	// ƒhƒƒCƒ“‚ðŽæ“¾
-	function GetDomainFromURL($url) {
-		// ‚Ü‚¸ƒpƒ‰ƒ[ƒ^‚ð—Ž‚Æ‚·
-		$target_domain = preg_replace('/\?.*$/', '', $url);
-		// ƒvƒƒgƒRƒ‹•”•ª‚ðØ‚è—Ž‚Æ‚µ
-		$target_domain = preg_replace('/^[^:=\/]*:\/\//', '', $target_domain);
-		// ƒpƒX•”•ª‚ðØ‚è—Ž‚Æ‚µ
-		$target_domain = preg_replace('/\/.*$/', '', $target_domain);
+	// ãƒ‰ãƒ¡ã‚¤ãƒ³ã‚’å–å¾—
+	static function GetDomainFromURL($url_path) {
+		if( !preg_match('/^[a-zA-Z]*:?\/\/[^\/]+/', $url_path) ) {
+			return '';
+		}
 
-		return $target_domain;
+		return preg_replace('/^[a-zA-Z]*:?\/\/([^\/]+).*$/', '$1', $url_path);
 	}
 
 
-	// ƒhƒƒCƒ“•”•ª‚Ü‚ÅØ‚è—Ž‚Æ‚µ
-	// URLŒ`Ž®‚É‚È‚Á‚Ä‚¢‚éê‡‚É‚µ‚©‘Î‰ž‚Å‚«‚Ä‚¢‚È‚¢
+	// ãƒ‰ãƒ¡ã‚¤ãƒ³éƒ¨åˆ†ã¾ã§åˆ‡ã‚Šè½ã¨ã—
+	// URLå½¢å¼ã«ãªã£ã¦ã„ã‚‹å ´åˆã«ã—ã‹å¯¾å¿œã§ãã¦ã„ãªã„
 	function ChopDomain($url_path) {
-		$path = preg_replace('/^.*:\/\/[^\/]*/', '', $url_path);
+		$path = preg_replace('/^[^\/]*\/\/[^\/]*/', '', $url_path);
 
-		// ƒhƒƒCƒ“‚ðí‚Á‚½Œ‹‰Ê, path‚ª‚È‚­‚È‚é‚±‚Æ‚Í‚ ‚è‚¦‚é
+		// ãƒ‰ãƒ¡ã‚¤ãƒ³ã‚’å‰Šã£ãŸçµæžœ, pathãŒãªããªã‚‹ã“ã¨ã¯ã‚ã‚Šãˆã‚‹
 		if( $path == '' ) {
 			$path = '/';
 		}
@@ -198,16 +291,79 @@ class Funwari_URL {
 	}
 
 
-	// ƒy[ƒW“àƒŠƒ“ƒN‚ðíœ
+	// ãƒ‘ã‚¹ä¸­ã‹ã‚‰ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‚’å–ã‚Šå‡ºã™
+	static function GetQueryStringFromURL($path) {
+		if( ! Funwari_URL::FindQueryStringFromURL($path) ) {
+			return '';
+		}
+
+		return preg_replace('/^.*\?([^#]*).*$/', '$1', $path);
+	}
+
+
+	// ãƒ‘ã‚¹ä¸­ã‹ã‚‰ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯ã‚’å–ã‚Šå‡ºã™
+	static function GetInternalLinkFromURL($path) {
+		if( ! Funwari_URL::FindInternalLinkFromURL($path) ) {
+			return '';
+		}
+
+		return preg_replace('/^.*#([^\?]*).*$/', '$1', $path);
+	}
+
+
+	// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‚’æŒã£ã¦ã„ã‚‹ã‹
+	static function FindQueryStringFromURL($path) { 
+		if( strpos($path, '?') !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+
+	// ã‚¤ãƒ³ã‚¿ãƒ¼ãƒŠãƒ«ãƒªãƒ³ã‚¯ã‚’æŒã£ã¦ã„ã‚‹ã‹
+	static function FindInternalLinkFromURL($path) { 
+		if( strpos($path, '#') !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+
+	// ãƒšãƒ¼ã‚¸å†…ãƒªãƒ³ã‚¯ã‚’å‰Šé™¤
 	static function ChopInternalLink($url_path) {
-		$url_path = preg_replace('/#.*\?/', '?', $url_path);
+		$url_path = preg_replace('/#[^\?]*\?/', '?', $url_path);
 		$url_path = preg_replace('/#.*$/', '', $url_path);
 
 		return $url_path;
 	}
 
 
-	// ‘S•”‚ÌƒAƒhƒŒƒX‚ðŽæ“¾
+	// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‚’å‰Šé™¤
+	static function ChopQueryString($url_path) {
+		$url_path = preg_replace('/\?[^#]*#/', '#', $url_path);
+		$url_path = preg_replace('/\?.*$/', '', $url_path);
+
+		return $url_path;
+	}
+
+
+	// ãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤
+	//   ã“ã“ã§ã¯ãƒ•ã‚¡ã‚¤ãƒ«åã¨ã¯1ã¤ä»¥ä¸Šã®æ–‡å­—ã‚’æŒã¤
+	//   æ‹¡å¼µå­ã‚’æŒã¤ã‚‚ã®ã¨ã™ã‚‹ã€‚
+	//   å®Ÿéš›ã®ã¨ã“ã‚, *nixã§ã¯æ‹¡å¼µå­ã‚’æŒãŸãªã„
+	//   ãƒ•ã‚¡ã‚¤ãƒ«ã‚‚æ™®é€šã«å­˜åœ¨ã™ã‚‹ã®ã§åˆ¤å®šãŒé›£ã—ã„
+	//
+	// å˜ç´”ãªãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤ã§ã¯dirnameãŒã‚ã‚‹ãŒ, 
+	// ã“ã¡ã‚‰ã¯æ‹¡å¼µå­ã®æœ‰ã‚‹ç„¡ã—ã¯è€ƒãˆã¦ãã‚Œãªã„ã®ã§
+	// ç‹¬è‡ªã«å®Ÿè£…ã—ãŸ
+	static function ChopFileName($path) {
+		return preg_replace('/[^\/\\\\]*\.[^\/\\\\]+/', '', $path);
+	}
+
+
+	// å…¨éƒ¨ã®ã‚¢ãƒ‰ãƒ¬ã‚¹ã‚’å–å¾—
 	function GetFullPath() {
 		$path = '';
 
@@ -224,32 +380,39 @@ class Funwari_URL {
 
 		$path .= $this->path;
 
+		if( $this->query_string != '' ) {
+			$path .= '?' . $this->query_string;
+		}
+
+		if( $this->internal_link != '' ) {
+			$path .= '#' . $this->internal_link;
+		}
+
 		return $path;
 	}
 
 
-	// ƒvƒƒgƒRƒ‹‚ð•Ô‚·
+	// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ã‚’è¿”ã™
 	function GetProtocol() {
 		return $this->protocol;
 	}
 
 
-	// ƒhƒƒCƒ“‚ð•Ô‚·
+	// ãƒ‰ãƒ¡ã‚¤ãƒ³ã‚’è¿”ã™
 	function GetDomain() {
 		return $this->domain;
 	}
 
 
-	// ƒpƒX‚ð•Ô‚·
+	// ãƒ‘ã‚¹ã‚’è¿”ã™
 	function GetPath() {
 		return $this->path;
 	}
 
 
-	// URL‚©?
+	// URLã‹?
 	function IsURL($path) {
-		if(preg_match('/^http:\/\//', $path)
-			|| preg_match('/^htts:\/\//', $path)) {
+		if( preg_match('/^[a-z]+:/', $path) ) {
 			return true;
 		}
 
@@ -257,9 +420,9 @@ class Funwari_URL {
 	}
 
 
-	// â‘ÎƒpƒX‚©
-	function IsAbsolute($path) {
-		if(preg_match('/^\//', $path)) {
+	// ãƒ—ãƒ­ãƒˆã‚³ãƒ«ç›¸å¯¾URLã‹
+	function IsProtocolRelativeURL($path) {
+		if( preg_match('/^\/\//', $path) ) {
 			return true;
 		}
 
@@ -267,11 +430,40 @@ class Funwari_URL {
 	}
 
 
-	// ‘Š‘ÎƒpƒX‚©
-	function IsRelative($path) {
+	// çµ¶å¯¾ãƒ‘ã‚¹ã‹
+	function IsAbsolutePath($path) {
+		if( preg_match('/^\//', $path) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+
+	// ç›¸å¯¾ãƒ‘ã‚¹ã‹
+	function IsRelativePath($path) {
 		return !$this->IsAbsolute($path);
 	}
 
+
+	// ãƒšãƒ¼ã‚¸å†…ãƒªãƒ³ã‚¯ã‹
+	function IsInternalLink($path) {
+		if( preg_match('/^#/', $path) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+
+	// ã‚¯ã‚¨ãƒªã‚¹ãƒˆãƒªãƒ³ã‚°ã‹
+	function IsQueryString($path) {
+		if( preg_match('/^\?/', $path) ) {
+			return true;
+		}
+
+		return false;
+	}
 }
 
 ?>

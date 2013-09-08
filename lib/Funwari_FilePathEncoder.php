@@ -9,7 +9,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *        notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the {organization} nor the
+ *     * Neither the name of the FunwariTools nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  *
@@ -25,14 +25,14 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// ”CˆÓ‚Ì•¶š—ñ‚ğFilePath‚Ì‹Ö~•¶š‚É’ïG‚µ‚È‚¢‚æ‚¤‚ÉƒGƒ“ƒR[ƒh
+// ä»»æ„ã®æ–‡å­—åˆ—ã‚’FilePathã®ç¦æ­¢æ–‡å­—ã«æŠµè§¦ã—ãªã„ã‚ˆã†ã«ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰
 
 class Funwari_FilePathEncoder {
 
-	// ƒGƒ“ƒR[ƒh
+	// ã‚¨ãƒ³ã‚³ãƒ¼ãƒ‰
 	//   / \ : * ? | < > & " '
-	// ‚ğ _ charcode - ‚É•ÏŠ·
-	// _\d{2}-‚Í_5F-\d{2]-‚Ææ‚É•ÏŠ·‚³‚ê‚é
+	// ã‚’ _ charcode - ã«å¤‰æ›
+	// _\d{2}-ã¯_5F-\d{2]-ã¨å…ˆã«å¤‰æ›ã•ã‚Œã‚‹
 	static function Encode($s) {
 		$s = preg_replace('/_(\d{2})-/', '_5F-$1-', $s);
 		$s = str_replace(array('/',    '\\',   ':',    '*',    '?',     '|', 

@@ -41,6 +41,7 @@
 // 最初に指定されたディレクトリから上に行かない
 // オプションとか欲しくなるな
 
+require_once 'HTTP/Request2.php';
 require_once dirname(__FILE__).'/lib/Funwari.php';
 
 // クロール用URL管理クラス
@@ -69,35 +70,40 @@ class CrawlUrl {
 // サイトクローラークラス
 class Funwari_SiteCrawler {
 
-	private $url;
+	//クロールするベース
 	private $protocol;
 	private $domain;
 	private $top_path;
 
+	//読み込むリンクのリスト
 	private $link_list;
+
+	//除外するパス(正規表現)
+	private $exclude_path_reg_list;
 
 	// コンストラクタ
 	function  __construct($url_path) {
 		$url_path = $this->NormalizeUrl($url_path);
-		$this->url = new Funwari_URL($url_path);
+		$url = new Funwari_URL($url_path);
 
 		// プロトコル
-		$this->protocol = $this->url->GetProtocol();
+		$this->protocol = $url->GetProtocol();
 
 		// ドメインを取得
-		$this->domain = $this->url->GetDomain();
+		$this->domain = $url->GetDomain();
 
 		// トップのパス
-		$this->top_path = Funwari_URL::ChopFileName($this->url->GetPath());
+		$this->top_path = Funwari_URL::ChopFileName($url->GetPath());
+
+		// 読み込むべきリンクの一覧
+		$base_url_str = $url->GetFullPath();
+		$this->link_list = array(new CrawlUrl($base_url_str));
 	}
 
 
 	// 実行
 	public function Run() {
 
-		// 読み込むべきリンクの一覧
-		$base_url_str = $this->url->GetFullPath();
-		$this->link_list = array(new CrawlUrl($base_url_str));
 		$link_index = 0;
 
 		// ファイルに逐次保存
@@ -131,13 +137,30 @@ class Funwari_SiteCrawler {
 	function CrawlAUrl($url) {
 
 		// コンテンツ取得
-		//   HTTP_Request2でも使えるようにしたほうが
-		//   素直だとも思うけど
-		$contents = file_get_contents($url);
-		if( $contents === false ) {
-			// 404 Not Foundなど
-			return false;
+		$request = new HTTP_Request2($url, HTTP_Request2::METHOD_GET);
+		$response = $request->send();
+		$result_code = $response->getStatus();
+
+		// リダイレクトの処理
+		// $request->setConfig('follow_redirects'...)などでも
+		// 設定できるが, レスポンスコードが欲しいこともあるので
+		// あえて自前で処理する
+		if( $result_code == 301 ) {
+			$redirect_url_str = $response->getHeader('Location');
+			if( $redirect_url_str != '') {
+				$redirect_url = new Funwari_URL($redirect_url_str);
+	 			$this->AddUrl($redirect_url);
+	 		}
+
+			return;
 		}
+
+		//リダイレクト以外で, 成功しなかった
+		if( $result_code != 200 ) {
+			return;
+		}
+
+		$contents = $response->getBody();
 
 		// 相対パスの基準パス
 		$base_url = $url;
@@ -237,10 +260,27 @@ class Funwari_SiteCrawler {
 		// ページ内リンクは削除
 		$url = Funwari_URL::ChopInternalLink($url);
 
-		// 最後スラッシュは削除
-		$url = preg_replace('/\/$/', '', $url);
-
 		return $url;
+	}
+
+
+	//ファイルから読み込む
+	public function AddUrlFromFile($filepath) {
+		if( !file_exists($filepath) ) {
+			return false;
+		}
+
+		$records = file($filepath);
+		foreach($records as $record) {
+			$url = preg_replace('/\s.*/', '', $record);
+			if( $url == '' ) {
+				continue;
+			}
+
+			$this->AddUrl(new Funwari_URL($url));
+		}
+
+		return true;
 	}
 }
 
@@ -251,6 +291,9 @@ if( $argv[1]=='') {
 }
 
 $site_crawler = new Funwari_SiteCrawler($argv[1]);
+if( $argv[2] != '') {
+	$site_crawler->AddUrlFromFile($argv[2]);
+}
 $site_crawler->run();
 
 ?>
